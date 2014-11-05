@@ -67,7 +67,8 @@ class GenBot
 
 		bot.on_mention do |tweet, meta|
 			# Avoid infinite reply chains
-			next if tweet[:user][:screen_name].include?(ROBOT_ID) && rand > 0.05
+			# s/0.05/0.25 to be chattier
+			next if tweet[:user][:screen_name].include?(ROBOT_ID) && rand > 0.25
 
 			author = tweet[:user][:screen_name]
 			next if $have_talked.fetch(author, 0) >= 5
@@ -127,8 +128,10 @@ class GenBot
 		end
 
 		# 80% chance to tweet every 2 hours
-		bot.scheduler.every '2h' do
-			if rand <= 0.8
+		bot.scheduler.every '1m' do
+			roll = rand
+			chance = 80.0 / 100 / 120 # (80 % in 2 hours)
+			if roll <= chance
 				bot.tweet @model.make_statement
 			end
 		end
