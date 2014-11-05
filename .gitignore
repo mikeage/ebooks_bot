@@ -1,0 +1,4 @@
+corpus/*.json
+corpus/*.csv
+model/*.model
+.env
