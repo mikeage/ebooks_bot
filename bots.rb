@@ -54,6 +54,35 @@ class GenBot
 		end
 
 		bot.on_message do |dm|
+			# Check for known commands:
+			# talk / "say something" / "tweet" (without "at XXX or to XX")
+			# reply to XXX / respond to XXX (TODO)
+			# reply to 12345 / respond to 12345 (TODO)
+			# Note: my ruby sucks.
+
+			command=dm[:text]
+			# ignore politephrases
+			#bot.log "Got command \"#{command}\""
+			politephrases =["please","thanks","thx","thank you","pls","kthxbai"]
+			politephrases.each do |politephrase|
+				command.gsub!(politephrase, "")
+			end
+			
+			# When
+			if command =~ /right now$/ 
+				delay = 0
+				command.gsub!("right now")
+			else
+				delay = DELAY 
+			end
+			command.strip!()
+			#bot.log "parsed command \"#{command}\". Delay is #{delay}"
+			if command =~ /^talk|say something|tweet$/
+				bot.delay delay do
+					bot.tweet @model.make_statement
+				end
+				next
+			end
 			bot.delay DELAY do
 				bot.reply dm, @model.make_response(dm[:text])
 			end
