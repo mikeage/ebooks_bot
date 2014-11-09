@@ -92,11 +92,11 @@ class GenBot
 						tweet = bot.twitter.status(tweet_id)
 						begin
 							bot.twitter.favorite(tweet_id)
-							bot.reply dm, "As requested, favoriting @#{tweet[:user][:screen_name]}: #{tweet[:text][0,40]}..."
+							bot.reply dm, "#{Time.now.getutc} As requested, favoriting @#{tweet[:user][:screen_name]}: #{tweet[:text][0,40]}..."
 						rescue Twitter::Error::Forbidden
-							bot.reply dm, "Got Forbidden; couldn't favorite @#{tweet[:user][:screen_name]}: #{tweet[:text][0,40]}..."
+							bot.reply dm, "#{Time.now.getutc} Got Forbidden; couldn't favorite @#{tweet[:user][:screen_name]}: #{tweet[:text][0,40]}..."
 						rescue 	
-							bot.reply dm, "Sorry, couldn't favorite @#{tweet[:user][:screen_name]}: #{tweet[:text][0,40]}..."
+							bot.reply dm, "#{Time.now.getutc} Sorry, couldn't favorite @#{tweet[:user][:screen_name]}: #{tweet[:text][0,40]}..."
 						end
 					end
 					next
@@ -129,9 +129,20 @@ class GenBot
 						meta[:mentionless] = mless
 						begin
 							reply(ev, meta)
-							bot.reply dm, "As requested, replied to @#{ev[:user][:screen_name]}: #{ev[:text][0,40]}..."
+							bot.reply dm, "#{Time.now.getutc} As requested, replied to @#{ev[:user][:screen_name]}: #{ev[:text][0,40]}..."
 						rescue 	
-							bot.reply dm, "Sorry, couldn't reply to @#{ev[:user][:screen_name]}: #{ev[:text][0,40]}..."
+							bot.reply dm, "#{Time.now.getutc} Sorry, couldn't reply to @#{ev[:user][:screen_name]}: #{ev[:text][0,40]}..."
+						end
+					end
+					next
+				elsif command =~ /^follow @?.+$/
+					user = command[/follow @?(.+)$/,1]
+					bot.delay delay do
+						begin
+							bot.follow user
+							bot.reply dm, "#{Time.now.getutc} As requested, followed @#{user}"
+						rescue 	
+							bot.reply dm, "#{Time.now.getutc} Sorry, couldn't follow @#{user}"
 						end
 					end
 					next
