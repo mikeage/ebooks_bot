@@ -100,6 +100,41 @@ class GenBot
 						end
 					end
 					next
+				elsif command =~ /^(reply to )|(respond to ).*?[0-9]+$/
+					tweet_id = command[/.*?([0-9]+)$/,1]
+					bot.delay delay do
+						ev = bot.twitter.status(tweet_id)
+
+						# Copied from twitter_ebooks/bot.rb
+						meta = {}
+						mentions = ev.attrs[:entities][:user_mentions].map { |x| x[:screen_name] }
+
+						reply_mentions = mentions.reject { |m| m.downcase == bot.username.downcase }
+						reply_mentions = [ev[:user][:screen_name]] + reply_mentions
+
+						meta[:reply_prefix] = reply_mentions.uniq.map { |m| '@'+m }.join(' ') + ' '
+						meta[:limit] = 140 - meta[:reply_prefix].length
+
+						mless = ev[:text]
+						begin
+							ev.attrs[:entities][:user_mentions].reverse.each do |entity|
+								last = mless[entity[:indices][1]..-1]||''
+								mless = mless[0...entity[:indices][0]] + last.strip
+							end
+						rescue Exception
+							p ev.attrs[:entities][:user_mentions]
+							p ev[:text]
+							raise
+						end
+						meta[:mentionless] = mless
+						begin
+							reply(ev, meta)
+							bot.reply dm, "As requested, replied to @#{ev[:user][:screen_name]}: #{ev[:text][0,40]}..."
+						rescue 	
+							bot.reply dm, "Sorry, couldn't reply to @#{ev[:user][:screen_name]}: #{ev[:text][0,40]}..."
+						end
+					end
+					next
 				end
 			end
 
