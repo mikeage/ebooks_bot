@@ -14,14 +14,13 @@ CONSUMER_SECRET = ENV['EBOOKS_CONSUMER_SECRET']
 ACCOUNTS=Hash.new
 i = 1
 while i <= NUMBER_BOTS.to_i do
-	ACCOUNTS[i]={:admin => ENV['EBOOKS_ADMIN_USERNAME_'+i.to_s], :username => ENV['EBOOKS_USERNAME_'+i.to_s], :oauth_token => ENV['EBOOKS_OAUTH_TOKEN_'+i.to_s], :oauth_token_secret => ENV['EBOOKS_OAUTH_TOKEN_SECRET_'+i.to_s] }
+	ACCOUNTS[i]={:admin => ENV['EBOOKS_ADMIN_USERNAME_'+i.to_s], :username => ENV['EBOOKS_USERNAME_'+i.to_s], :oauth_token => ENV['EBOOKS_OAUTH_TOKEN_'+i.to_s], :oauth_token_secret => ENV['EBOOKS_OAUTH_TOKEN_SECRET_'+i.to_s], :blacklist =>ENV['EBOOKS_BLACKLIST_'+i.to_s] }
 	i+=1
 end
 
 ROBOT_ID = "_ebook" # Prefer not to talk to other robots
 
 DELAY = 2..30 # Simulated human reply delay range, in seconds
-BLACKLIST = ['tinysubversions', 'dril'] # users to avoid interaction with
 SPECIAL_WORDS = ['singularity', 'world domination'] # Words we like
 BANNED_WORDS = ['voldemort', 'evgeny morozov', 'heroku'] # Words we don't want to use
 
@@ -42,9 +41,12 @@ class Ebooks::Model
 end
 
 class GenBot
-	def initialize(bot, modelname, admin)
+
+	def initialize(bot, modelname, admin, blacklist)
 		@bot = bot
 		@model = nil
+
+		@blacklist = blacklist
 
 		bot.consumer_key = CONSUMER_KEY
 		bot.consumer_secret = CONSUMER_SECRET
@@ -196,7 +198,7 @@ class GenBot
 		bot.on_timeline do |tweet, meta|
 			next if tweet[:retweeted_status] || tweet[:text].start_with?('RT')
 			author = tweet[:user][:screen_name]
-			next if BLACKLIST.include?(author)
+			next if @blacklist.include?(author)
 
 			tokens = NLP.tokenize(tweet[:text])
 
@@ -267,8 +269,8 @@ class GenBot
 	end
 end
 
-def make_bot(bot, modelname, admin)
-	GenBot.new(bot, modelname, admin)
+def make_bot(bot, modelname, admin, blacklist)
+	GenBot.new(bot, modelname, admin, blacklist)
 end
 
 ACCOUNTS.each do |key, account|
@@ -276,7 +278,7 @@ ACCOUNTS.each do |key, account|
 		bot.oauth_token = account[:oauth_token]
 		bot.oauth_token_secret = account[:oauth_token_secret]
 
-		make_bot(bot, account[:username], account[:admin])
+		make_bot(bot, account[:username], account[:admin], account[:blacklist].split(","))
 		#account+=1
 
 	end
