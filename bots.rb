@@ -14,14 +14,13 @@ CONSUMER_SECRET = ENV['EBOOKS_CONSUMER_SECRET']
 ACCOUNTS=Hash.new
 i = 1
 while i <= NUMBER_BOTS.to_i do
-	ACCOUNTS[i]={:admin => ENV['EBOOKS_ADMIN_USERNAME_'+i.to_s], :username => ENV['EBOOKS_USERNAME_'+i.to_s], :oauth_token => ENV['EBOOKS_OAUTH_TOKEN_'+i.to_s], :oauth_token_secret => ENV['EBOOKS_OAUTH_TOKEN_SECRET_'+i.to_s], :blacklist =>ENV['EBOOKS_BLACKLIST_'+i.to_s] }
+	ACCOUNTS[i]={:admin => ENV['EBOOKS_ADMIN_USERNAME_'+i.to_s], :username => ENV['EBOOKS_USERNAME_'+i.to_s], :oauth_token => ENV['EBOOKS_OAUTH_TOKEN_'+i.to_s], :oauth_token_secret => ENV['EBOOKS_OAUTH_TOKEN_SECRET_'+i.to_s], :blacklist =>ENV['EBOOKS_BLACKLIST_'+i.to_s], :special_words => ENV['EBOOKS_SPECIAL_WORDS_'+i.to_s] }
 	i+=1
 end
 
 ROBOT_ID = "_ebook" # Prefer not to talk to other robots
 
 DELAY = 2..30 # Simulated human reply delay range, in seconds
-SPECIAL_WORDS = ['singularity', 'world domination'] # Words we like
 BANNED_WORDS = ['voldemort', 'evgeny morozov', 'heroku'] # Words we don't want to use
 
 # Track who we've randomly interacted with globally
@@ -42,11 +41,12 @@ end
 
 class GenBot
 
-	def initialize(bot, modelname, admin, blacklist)
+	def initialize(bot, modelname, admin, blacklist, special_words)
 		@bot = bot
 		@model = nil
 
 		@blacklist = blacklist
+		@special_words = special_words
 
 		bot.consumer_key = CONSUMER_KEY
 		bot.consumer_secret = CONSUMER_SECRET
@@ -186,7 +186,7 @@ class GenBot
 
 			tokens = NLP.tokenize(tweet[:text])
 			very_interesting = tokens.find_all { |t| @top50.include?(t.downcase) }.length > 2
-			special = tokens.find { |t| SPECIAL_WORDS.include?(t) }
+			special = tokens.find { |t| @special_words.include?(t) }
 
 			if very_interesting || special
 				favorite(tweet)
@@ -206,7 +206,7 @@ class GenBot
 			# tweet matches our keywords
 			interesting = tokens.find { |t| @top100.include?(t.downcase) }
 			very_interesting = tokens.find_all { |t| @top50.include?(t.downcase) }.length > 2
-			special = tokens.find { |t| SPECIAL_WORDS.include?(t) }
+			special = tokens.find { |t| @special_words.include?(t) }
 
 			if special
 				favorite(tweet)
@@ -269,8 +269,8 @@ class GenBot
 	end
 end
 
-def make_bot(bot, modelname, admin, blacklist)
-	GenBot.new(bot, modelname, admin, blacklist)
+def make_bot(bot, modelname, admin, blacklist, special_words)
+	GenBot.new(bot, modelname, admin, blacklist, special_words)
 end
 
 ACCOUNTS.each do |key, account|
@@ -278,7 +278,7 @@ ACCOUNTS.each do |key, account|
 		bot.oauth_token = account[:oauth_token]
 		bot.oauth_token_secret = account[:oauth_token_secret]
 
-		make_bot(bot, account[:username], account[:admin], account[:blacklist].split(","))
+		make_bot(bot, account[:username], account[:admin], account[:blacklist].split(","), account[:special_words].split(","))
 		#account+=1
 
 	end
