@@ -12,7 +12,7 @@ CONSUMER_SECRET = ENV['EBOOKS_CONSUMER_SECRET']
 ACCOUNTS=Hash.new
 i = 1
 while i <= NUMBER_BOTS.to_i do
-	ACCOUNTS[i]={:username => ENV['EBOOKS_USERNAME_'+i.to_s], :oauth_token => ENV['EBOOKS_OAUTH_TOKEN_'+i.to_s], :oauth_token_secret => ENV['EBOOKS_OAUTH_TOKEN_SECRET_'+i.to_s] }
+	ACCOUNTS[i]={:admin => ENV['EBOOKS_ADMIN_USERNAME_'+i.to_s], :username => ENV['EBOOKS_USERNAME_'+i.to_s], :oauth_token => ENV['EBOOKS_OAUTH_TOKEN_'+i.to_s], :oauth_token_secret => ENV['EBOOKS_OAUTH_TOKEN_SECRET_'+i.to_s] }
 	i+=1
 end
 
@@ -40,12 +40,13 @@ class Ebooks::Model
 end
 
 class GenBot
-	def initialize(bot, modelname)
+	def initialize(bot, modelname, admin)
 		@bot = bot
 		@model = nil
 
 		bot.consumer_key = CONSUMER_KEY
 		bot.consumer_secret = CONSUMER_SECRET
+		@admin = admin
 
 		bot.on_startup do
 			@model = Model.load("model/#{modelname}.model")
@@ -60,46 +61,50 @@ class GenBot
 			# reply to 12345 / respond to 12345 (TODO)
 			# Note: my ruby sucks.
 
-			command=dm[:text]
-			# ignore politephrases
-			#bot.log "Got command \"#{command}\""
-			politephrases =["please","thanks","thx","thank you","pls","kthxbai"]
-			politephrases.each do |politephrase|
-				command.gsub!(politephrase, "")
-			end
-			command.strip!()
-
-			# When
-			if command =~ /right now$/ 
-				delay = 0
-				command.gsub!("right now", "")
-			else
-				delay = DELAY 
-			end
-			command.strip!()
-			#bot.log "parsed command \"#{command}\". Delay is #{delay}"
-
-			if command =~ /^talk|say something|tweet$/
-				bot.delay delay do
-					bot.tweet @model.make_statement
+			if @admin == dm[:sender][:screen_name]
+				command=dm[:text]
+				# ignore politephrases
+				#bot.log "Got command \"#{command}\""
+				politephrases =["please","thanks","thx","thank you","pls","kthxbai"]
+				politephrases.each do |politephrase|
+					command.gsub!(politephrase, "")
 				end
-			elsif command =~ /^favorite.*?[0-9]+$/
-				tweet_id = command[/.*?([0-9]+)$/,1]
-				bot.delay delay do
-					tweet = bot.twitter.status(tweet_id)
-					begin
-						bot.twitter.favorite(tweet_id)
-						bot.reply dm, "As requested, favoriting @#{tweet[:user][:screen_name]}: #{tweet[:text][0,40]}..."
-					rescue Twitter::Error::Forbidden
-						bot.reply dm, "Got Forbidden; couldn't favorite @#{tweet[:user][:screen_name]}: #{tweet[:text][0,40]}..."
-					rescue 	
-						bot.reply dm, "Sorry, couldn't favorite @#{tweet[:user][:screen_name]}: #{tweet[:text][0,40]}..."
+				command.strip!()
+
+				# When
+				if command =~ /right now$/ 
+					delay = 0
+					command.gsub!("right now", "")
+				else
+					delay = DELAY 
+				end
+				command.strip!()
+				#bot.log "parsed command \"#{command}\". Delay is #{delay}"
+
+				if command =~ /^talk|say something|tweet$/
+					bot.delay delay do
+						bot.tweet @model.make_statement
 					end
+					next
+				elsif command =~ /^favorite.*?[0-9]+$/
+					tweet_id = command[/.*?([0-9]+)$/,1]
+					bot.delay delay do
+						tweet = bot.twitter.status(tweet_id)
+						begin
+							bot.twitter.favorite(tweet_id)
+							bot.reply dm, "As requested, favoriting @#{tweet[:user][:screen_name]}: #{tweet[:text][0,40]}..."
+						rescue Twitter::Error::Forbidden
+							bot.reply dm, "Got Forbidden; couldn't favorite @#{tweet[:user][:screen_name]}: #{tweet[:text][0,40]}..."
+						rescue 	
+							bot.reply dm, "Sorry, couldn't favorite @#{tweet[:user][:screen_name]}: #{tweet[:text][0,40]}..."
+						end
+					end
+					next
 				end
-			else # No commands here
-				bot.delay DELAY do
-					bot.reply dm, @model.make_response(dm[:text])
-				end
+			end
+
+			bot.delay DELAY do
+				bot.reply dm, @model.make_response(dm[:text])
 			end
 		end
 
@@ -203,8 +208,8 @@ class GenBot
 	end
 end
 
-def make_bot(bot, modelname)
-	GenBot.new(bot, modelname)
+def make_bot(bot, modelname, admin)
+	GenBot.new(bot, modelname, admin)
 end
 
 ACCOUNTS.each do |key, account|
@@ -212,7 +217,7 @@ ACCOUNTS.each do |key, account|
 		bot.oauth_token = account[:oauth_token]
 		bot.oauth_token_secret = account[:oauth_token_secret]
 
-		make_bot(bot, account[:username])
+		make_bot(bot, account[:username], account[:admin])
 		#account+=1
 
 	end
