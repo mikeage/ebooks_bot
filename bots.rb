@@ -67,24 +67,39 @@ class GenBot
 			politephrases.each do |politephrase|
 				command.gsub!(politephrase, "")
 			end
-			
+			command.strip!()
+
 			# When
 			if command =~ /right now$/ 
 				delay = 0
-				command.gsub!("right now")
+				command.gsub!("right now", "")
 			else
 				delay = DELAY 
 			end
 			command.strip!()
 			#bot.log "parsed command \"#{command}\". Delay is #{delay}"
+
 			if command =~ /^talk|say something|tweet$/
 				bot.delay delay do
 					bot.tweet @model.make_statement
 				end
-				next
-			end
-			bot.delay DELAY do
-				bot.reply dm, @model.make_response(dm[:text])
+			elsif command =~ /^favorite.*?[0-9]+$/
+				tweet_id = command[/.*?([0-9]+)$/,1]
+				bot.delay delay do
+					tweet = bot.twitter.status(tweet_id)
+					begin
+						bot.twitter.favorite(tweet_id)
+						bot.reply dm, "As requested, favoriting @#{tweet[:user][:screen_name]}: #{tweet[:text][0,40]}..."
+					rescue Twitter::Error::Forbidden
+						bot.reply dm, "Got Forbidden; couldn't favorite @#{tweet[:user][:screen_name]}: #{tweet[:text][0,40]}..."
+					rescue 	
+						bot.reply dm, "Sorry, couldn't favorite @#{tweet[:user][:screen_name]}: #{tweet[:text][0,40]}..."
+					end
+				end
+			else # No commands here
+				bot.delay DELAY do
+					bot.reply dm, @model.make_response(dm[:text])
+				end
 			end
 		end
 
