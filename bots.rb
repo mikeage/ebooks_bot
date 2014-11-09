@@ -24,7 +24,6 @@ DELAY = 2..30 # Simulated human reply delay range, in seconds
 BANNED_WORDS = ['voldemort', 'evgeny morozov', 'heroku'] # Words we don't want to use
 
 # Track who we've randomly interacted with globally
-$have_talked = {}
 $banned_words = BANNED_WORDS
 
 # Overwrite the Model#valid_tweet? method to check for banned words
@@ -44,6 +43,7 @@ class GenBot
 	def initialize(bot, modelname, admin, blacklist, special_words)
 		@bot = bot
 		@model = nil
+		@have_talked = {}
 
 		@blacklist = blacklist
 		@special_words = special_words
@@ -181,8 +181,8 @@ class GenBot
 			next if tweet[:user][:screen_name].include?(ROBOT_ID) && rand > 0.25
 
 			author = tweet[:user][:screen_name]
-			next if $have_talked.fetch(author, 0) >= 5
-			$have_talked[author] = $have_talked.fetch(author, 0) + 1
+			next if @have_talked.fetch(author, 0) >= 5
+			@have_talked[author] = @have_talked.fetch(author, 0) + 1
 
 			tokens = NLP.tokenize(tweet[:text])
 			very_interesting = tokens.find_all { |t| @top50.include?(t.downcase) }.length > 2
@@ -219,8 +219,8 @@ class GenBot
 
 			# Any given user will receive at most one random interaction per 12h
 			# (barring special cases)
-			next if $have_talked[author]
-			$have_talked[author] = $have_talked.fetch(author, 0) + 1
+			next if @have_talked[author]
+			@have_talked[author] = @have_talked.fetch(author, 0) + 1
 
 			if very_interesting || special
 				favorite(tweet) if (rand < 0.5 && !favd) # Don't fav the tweet if we did earlier
@@ -234,7 +234,7 @@ class GenBot
 
 		# Reset list of mention recipients every 12 hrs:
 		bot.scheduler.every '12h' do
-			$have_talked = {}
+			@have_talked = {}
 		end
 
 		# 80% chance to tweet every 2 hours
