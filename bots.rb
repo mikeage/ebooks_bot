@@ -6,6 +6,8 @@ include Ebooks
 require 'dotenv'  
 Dotenv.load(".env")
 
+require 'open-uri'
+
 NUMBER_BOTS = ENV['EBOOKS_NUMBER_BOTS']
 CONSUMER_KEY = ENV['EBOOKS_CONSUMER_KEY']  
 CONSUMER_SECRET = ENV['EBOOKS_CONSUMER_SECRET']  
@@ -57,8 +59,8 @@ class GenBot
 		bot.on_message do |dm|
 			# Check for known commands:
 			# talk / "say something" / "tweet" (without "at XXX or to XX")
+			# reply to 12345 / respond to 12345 
 			# reply to XXX / respond to XXX (TODO)
-			# reply to 12345 / respond to 12345 (TODO)
 			# Note: my ruby sucks.
 
 			if @admin == dm[:sender][:screen_name]
@@ -79,8 +81,19 @@ class GenBot
 					delay = DELAY 
 				end
 				command.strip!()
-				#bot.log "parsed command \"#{command}\". Delay is #{delay}"
 
+				# Expand t.co URLs
+				if command =~ /https?:\/\/t.co\/[^ \/]/
+					url = command[/(https?:\/\/t.co\/[^ \/]+)/]
+
+					open(url) do |h|
+						final_uri = h.base_uri
+						command.gsub!(url, final_uri.to_s)
+					end
+				end
+				command.strip!()
+
+				#bot.log "parsed command \"#{command}\". Delay is #{delay}"
 				if command =~ /^talk|say something|tweet$/
 					bot.delay delay do
 						bot.tweet @model.make_statement
