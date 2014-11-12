@@ -5,6 +5,7 @@ Multi-user twitter ebooks bot
 
 Based very heavily on:
 * https://github.com/mispy/twitter_ebooks
+* https://github.com/mispy/ebooks_example
 * http://blog.boodoo.co/how-to-make-an-_ebooks/
 * http://blog.boodoo.co/how-to-deploy-an-_ebooks-bot/
 
@@ -16,10 +17,10 @@ Basic instructions (this needs some major improvement)
 * Authorize each user using twurl: `twurl authorize --consumer-key <your_consumer_key> --consumer-secret <your_consumer_secret> -u <user_1> -p <user_1_password>`
 * Copy 'token' and 'secret' from `~/.twurlrc` to `.env` (as `EBOOKS_OAUTH_TOKEN_*` and `EBOOKS_OAUTH_TOKEN_SECRET_*`)
 * `gem install ebooks`
+* update the rest of the fields in `.env`
 * `ebooks archive <user_to_learn_from> corpus/<botname>.json`
 * `ebooks consume $( [ -f corpus/<botname>.csv ] && echo corpus/<botname>.csv) corpus/<botname>.json`
-* Remove my models from `models/`
-* `ruby run.rb`
+* `./start.sh`
 
 Deploying to heroku:
 * `heroku config:push` to copy .env to heroku
