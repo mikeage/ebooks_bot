@@ -78,7 +78,7 @@ class CloneBot < Ebooks::Bot
     end
   end
 
-  def on_direct_message(dm)
+  def on_message(dm)
     if @admin == dm.sender.screen_name
       command=dm.text.dup
       # ignore politephrases
