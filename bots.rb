@@ -66,8 +66,10 @@ class CloneBot < Ebooks::Bot
 
   def on_startup
     scheduler.cron '0 0 * * *' do
-      # Each day at midnight, post a single tweet
-      tweet(model.make_statement)
+	  # Be willing to bother people again tomorrow
+	  @userinfo.each do |key,user|
+        user.pesters_left = 1 if user.pesters_left == 0
+	  end
     end
     scheduler.every '1m' do
       roll = rand
