@@ -9,8 +9,8 @@ done
 cp model/*model $MODEL_REPO/
 pushd $MODEL_REPO
 date=$(date)
-#git commit -m "sync at $date" .
-#git push origin master
+git commit -m "sync at $date" .
+git push origin master
 popd
-#heroku ps:restart 
+heroku ps:restart 
 
